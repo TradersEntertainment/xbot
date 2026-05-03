@@ -90,8 +90,8 @@
                 </div>
 
                 <div class="card">
-                    <h3>📜 Recent Tweets</h3>
-                    <div id="recentTweets">
+                    <h3>📋 Pending Tweets (Ready to Post)</h3>
+                    <div id="pendingTweets">
                         <div class="loading-text">Loading...</div>
                     </div>
                 </div>
@@ -121,7 +121,7 @@
                             <div class="preview-text" id="previewText"></div>
                             <div class="preview-meta">
                                 <span id="previewChars"></span>
-                                <button class="btn btn-success btn-sm" onclick="postPreview()">📤 Post This</button>
+                                <button class="btn btn-success btn-sm" onclick="postPreview()">📥 Add to Queue</button>
                                 <button class="btn btn-outline btn-sm" onclick="generatePreview()">🔄 Regenerate</button>
                             </div>
                         </div>
@@ -135,7 +135,7 @@
                             <div class="char-count"><span id="manualChars">0</span>/280</div>
                         </div>
                         <button class="btn btn-success full-width" onclick="postManual()">
-                            📤 Post Tweet + Ref Reply
+                            📥 Add to Pending Queue
                         </button>
                     </div>
                 </div>

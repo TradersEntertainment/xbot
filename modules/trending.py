@@ -6,7 +6,7 @@ import logging
 import bot_settings
 from polymarket.gamma_api import get_trending_markets, format_market_summary
 from content_generator import generate_tweet, generate_thread
-from twitter_client import post_tweet_with_ref, post_thread_with_ref, get_recent_tweet_texts
+import tweet_manager
 from templates.prompts import TRENDING_PROMPT, THREAD_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ async def run():
         return
 
     context = _build_context(markets)
-    recent = get_recent_tweet_texts(50)
+    recent = tweet_manager.get_recent_tweet_texts(50)
 
     # Decide: single tweet or thread (20% chance for thread)
     if random.random() < 0.2 and len(markets) >= 3:
@@ -59,18 +59,18 @@ async def run():
         thread_context = context + "\n\nWrite a 3-tweet thread about the most interesting trending markets."
         tweets = generate_thread(THREAD_PROMPT, thread_context)
         if tweets and tweets[0] not in recent:
-            await post_thread_with_ref(tweets, MODULE)
+            await tweet_manager.add_pending_tweet(tweets, MODULE)
         else:
             logger.info(f"[{MODULE}] Thread was duplicate or empty, skipping")
     else:
         logger.info(f"[{MODULE}] Generating single tweet...")
         tweet = generate_tweet(TRENDING_PROMPT, context)
         if tweet and tweet not in recent:
-            await post_tweet_with_ref(tweet, MODULE)
+            await tweet_manager.add_pending_tweet(tweet, MODULE)
         else:
             logger.info(f"[{MODULE}] Tweet was duplicate or empty, retrying with different temp...")
             tweet = generate_tweet(TRENDING_PROMPT, context + "\nWrite something completely different from usual.")
             if tweet and tweet not in recent:
-                await post_tweet_with_ref(tweet, MODULE)
+                await tweet_manager.add_pending_tweet(tweet, MODULE)
 
     logger.info(f"[{MODULE}] Done")

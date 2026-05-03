@@ -7,7 +7,7 @@ import bot_settings
 
 from polymarket.gamma_api import get_trending_markets, get_hot_events, format_market_summary
 from content_generator import generate_tweet
-from twitter_client import post_tweet_with_ref, get_recent_tweet_texts
+import tweet_manager
 from templates.prompts import VIRAL_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -80,18 +80,18 @@ async def run():
     context = _build_context(markets, events)
     full_context = f"{context}\n\nINSTRUCTION: {angle}"
 
-    recent = get_recent_tweet_texts(50)
+    recent = tweet_manager.get_recent_tweet_texts(50)
 
     tweet = generate_tweet(VIRAL_PROMPT, full_context)
     if tweet and tweet not in recent:
-        await post_tweet_with_ref(tweet, MODULE)
+        await tweet_manager.add_pending_tweet(tweet, MODULE)
     else:
         # Try with a different angle
         angle2 = random.choice([a for a in VIRAL_ANGLES if a != angle])
         full_context2 = f"{context}\n\nINSTRUCTION: {angle2}"
         tweet = generate_tweet(VIRAL_PROMPT, full_context2)
         if tweet and tweet not in recent:
-            await post_tweet_with_ref(tweet, MODULE)
+            await tweet_manager.add_pending_tweet(tweet, MODULE)
         else:
             logger.warning(f"[{MODULE}] Could not generate non-duplicate tweet")
 

@@ -23,6 +23,7 @@ from modules import trending, portfolio, viral
 from polymarket.gamma_api import get_trending_markets, format_market_summary
 from polymarket.data_api import get_user_activity
 from content_generator import preview_tweet
+import tweet_manager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -125,14 +126,8 @@ async def api_status():
                 "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
             })
 
-    # Read tweet history
-    tweet_count = 0
-    if os.path.exists(config.TWEET_HISTORY_FILE):
-        try:
-            with open(config.TWEET_HISTORY_FILE, "r", encoding="utf-8") as f:
-                tweet_count = len(json.load(f))
-        except Exception:
-            pass
+    history = tweet_manager.get_history()
+    tweet_count = len(history)
 
     return {
         "paused": settings.get("paused", False),
@@ -167,17 +162,37 @@ async def api_update_settings(request: Request):
     return {"status": "ok", "settings": updated}
 
 
-@app.get("/api/tweets")
-async def api_tweets():
-    if not os.path.exists(config.TWEET_HISTORY_FILE):
-        return []
-    try:
-        with open(config.TWEET_HISTORY_FILE, "r", encoding="utf-8") as f:
-            history = json.load(f)
-        history.reverse()  # newest first
-        return history[:100]
-    except Exception:
-        return []
+@app.get("/api/tweets/pending")
+async def api_tweets_pending():
+    return tweet_manager.get_pending()
+
+@app.get("/api/tweets/history")
+async def api_tweets_history():
+    return tweet_manager.get_history()[:100]
+
+@app.post("/api/tweets/mark-posted")
+async def api_tweet_mark_posted(request: Request):
+    body = await request.json()
+    tweet_id = body.get("id")
+    if not tweet_id:
+        return JSONResponse(status_code=400, content={"error": "Missing tweet ID"})
+    
+    success = tweet_manager.mark_posted(tweet_id)
+    if success:
+        return {"status": "ok"}
+    return JSONResponse(status_code=404, content={"error": "Tweet not found"})
+
+@app.post("/api/tweets/delete")
+async def api_tweet_delete(request: Request):
+    body = await request.json()
+    tweet_id = body.get("id")
+    if not tweet_id:
+        return JSONResponse(status_code=400, content={"error": "Missing tweet ID"})
+    
+    success = tweet_manager.delete_pending(tweet_id)
+    if success:
+        return {"status": "ok"}
+    return JSONResponse(status_code=404, content={"error": "Tweet not found"})
 
 
 @app.post("/api/bot/pause")
@@ -236,13 +251,8 @@ async def api_post_tweet(request: Request):
     if not text:
         return JSONResponse(status_code=400, content={"error": "Tweet text is empty"})
 
-    from twitter_client import post_tweet_with_ref
-    tweet_id = await post_tweet_with_ref(text, module)
-
-    if tweet_id:
-        return {"status": "posted", "tweet_id": tweet_id}
-    else:
-        return JSONResponse(status_code=500, content={"error": "Failed to post tweet"})
+    await tweet_manager.add_pending_tweet(text, module)
+    return {"status": "queued"}
 
 
 @app.post("/api/tweet/run-module")

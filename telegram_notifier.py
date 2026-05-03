@@ -79,10 +79,10 @@ async def notify_error(module: str, error: str):
 async def notify_startup():
     """Send startup notification."""
     msg = (
-        f"🟢 <b>Polymarket Bot Started</b>\n"
+        f"🟢 <b>Polymarket Bot Started (Manual Queue Mode)</b>\n"
         f"👤 Account: @{config.X_USERNAME}\n"
         f"💰 Wallet: <code>{config.POLYMARKET_WALLET[:12]}...</code>\n"
         f"🔗 Ref: {config.POLYMARKET_REF_CODE}\n"
-        f"📅 Tweets/day: ~{config.TWEETS_PER_DAY}"
+        f"📝 Tweets are now generated to the Pending Queue in the Dashboard."
     )
     await send_message(msg)

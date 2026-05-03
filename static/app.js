@@ -65,7 +65,7 @@ async function loadStatus() {
         }
 
         // Recent tweets on overview
-        loadRecentTweets();
+        loadPendingTweets();
     } catch (e) {
         console.error('Failed to load status:', e);
     }
@@ -184,33 +184,45 @@ function updateAggrLabel() {
 // ─── Tweets ───────────────────────────────────────
 async function loadTweets() {
     try {
-        const res = await fetch(`${API}/api/tweets`);
+        const res = await fetch(`${API}/api/tweets/history`);
         const tweets = await res.json();
-        renderTweetList(tweets, 'tweetHistory');
+        renderTweetList(tweets, 'tweetHistory', false);
     } catch (e) {
         console.error('Failed to load tweets:', e);
     }
 }
 
-async function loadRecentTweets() {
+async function loadPendingTweets() {
     try {
-        const res = await fetch(`${API}/api/tweets`);
+        const res = await fetch(`${API}/api/tweets/pending`);
         const tweets = await res.json();
-        renderTweetList(tweets.slice(0, 5), 'recentTweets');
+        renderTweetList(tweets.slice(0, 5), 'pendingTweets', true);
     } catch (e) {}
 }
 
-function renderTweetList(tweets, containerId) {
+function renderTweetList(tweets, containerId, isPending) {
     const container = document.getElementById(containerId);
     if (!tweets || tweets.length === 0) {
-        container.innerHTML = '<div class="empty-state">No tweets yet. The bot will start posting on schedule.</div>';
+        container.innerHTML = '<div class="empty-state">No tweets.</div>';
         return;
     }
 
     container.innerHTML = tweets.map(t => {
-        const time = t.timestamp ? new Date(t.timestamp + 'Z').toLocaleString() : '';
+        const time = t.created_at || t.posted_at ? new Date((t.created_at || t.posted_at) + 'Z').toLocaleString() : '';
         const moduleClass = t.module || 'manual';
-        const tweetUrl = t.id ? `https://x.com/girlmathtorich/status/${t.id}` : '';
+        const rawText = escapeHtml(t.full_text || t.text || '');
+
+        let actions = '';
+        if (isPending) {
+            actions = `
+                <div class="tweet-actions" style="margin-top: 10px; display: flex; gap: 8px;">
+                    <button class="btn btn-outline btn-sm" onclick="copyTweetText('${t.id}')">📋 Copy</button>
+                    <button class="btn btn-success btn-sm" onclick="markTweetPosted('${t.id}')">✅ Mark Posted</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTweet('${t.id}')">🗑️ Delete</button>
+                    <div id="hidden-text-${t.id}" style="display:none;">${rawText}</div>
+                </div>
+            `;
+        }
 
         return `<div class="tweet-item">
             <div class="tweet-header">
@@ -218,10 +230,50 @@ function renderTweetList(tweets, containerId) {
                 <span class="tweet-time">${time}</span>
             </div>
             <div class="tweet-text">${escapeHtml(t.text || '')}</div>
-            ${tweetUrl ? `<div class="tweet-id"><a href="${tweetUrl}" target="_blank">View on X →</a></div>` : ''}
+            ${actions}
         </div>`;
     }).join('');
 }
+
+function copyTweetText(id) {
+    const el = document.getElementById('hidden-text-' + id);
+    if (!el) return;
+    
+    // We need to un-escape the HTML back to plain text
+    const text = el.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!', 'success');
+    }).catch(() => {
+        showToast('Failed to copy', 'error');
+    });
+}
+
+async function markTweetPosted(id) {
+    try {
+        await fetch(`${API}/api/tweets/mark-posted`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        showToast('Marked as posted', 'success');
+        loadStatus();
+    } catch(e) {}
+}
+
+async function deleteTweet(id) {
+    try {
+        await fetch(`${API}/api/tweets/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        showToast('Tweet deleted', 'success');
+        loadStatus();
+    } catch(e) {}
+}
+
+    // Handled in the new block
 
 function escapeHtml(str) {
     const div = document.createElement('div');
@@ -265,8 +317,8 @@ async function postPreview() {
             body: JSON.stringify({ text, module }),
         });
         const data = await res.json();
-        if (data.status === 'posted') {
-            showToast('Tweet posted! + Ref reply ✅', 'success');
+        if (data.status === 'queued') {
+            showToast('Added to pending queue!', 'success');
             document.getElementById('previewBox').style.display = 'none';
             loadStatus();
         } else {
@@ -291,8 +343,8 @@ async function postManual() {
             body: JSON.stringify({ text, module: 'manual' }),
         });
         const data = await res.json();
-        if (data.status === 'posted') {
-            showToast('Tweet posted! + Ref reply ✅', 'success');
+        if (data.status === 'queued') {
+            showToast('Added to pending queue!', 'success');
             document.getElementById('manualText').value = '';
             document.getElementById('manualChars').textContent = '0';
             loadStatus();

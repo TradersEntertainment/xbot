@@ -6,7 +6,7 @@ import bot_settings
 import config
 from polymarket.data_api import get_user_trades, get_user_activity, format_trade, calculate_trade_pnl
 from content_generator import generate_tweet
-from twitter_client import post_tweet_with_ref, get_recent_tweet_texts
+import tweet_manager
 from templates.prompts import PORTFOLIO_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -78,11 +78,11 @@ async def run():
 
     trades = [a for a in activity if a.get("type") == "TRADE"]
     context = _build_context(trades, activity)
-    recent = get_recent_tweet_texts(50)
+    recent = tweet_manager.get_recent_tweet_texts(50)
 
     tweet = generate_tweet(PORTFOLIO_PROMPT, context)
     if tweet and tweet not in recent:
-        await post_tweet_with_ref(tweet, MODULE)
+        await tweet_manager.add_pending_tweet(tweet, MODULE)
     else:
         logger.info(f"[{MODULE}] Tweet was duplicate or empty, trying again...")
         tweet = generate_tweet(
@@ -90,6 +90,6 @@ async def run():
             context + "\nFocus on a specific interesting trade and share your reasoning."
         )
         if tweet and tweet not in recent:
-            await post_tweet_with_ref(tweet, MODULE)
+            await tweet_manager.add_pending_tweet(tweet, MODULE)
 
     logger.info(f"[{MODULE}] Done")

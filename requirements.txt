@@ -1,4 +1,3 @@
-twikit @ git+https://github.com/steverex169/twikit.git@fix/x-client-transaction-webpack-format
 groq>=0.9.0
 httpx>=0.27.0
 apscheduler>=3.10.0
