@@ -2,6 +2,7 @@
 
 import logging
 
+import bot_settings
 import config
 from polymarket.data_api import get_user_trades, get_user_activity, format_trade, calculate_trade_pnl
 from content_generator import generate_tweet
@@ -55,6 +56,13 @@ def _build_context(trades: list[dict], activity: list[dict]) -> str:
 
 async def run():
     """Execute the portfolio module."""
+    if bot_settings.is_paused():
+        logger.info(f"[{MODULE}] Bot is paused, skipping")
+        return
+    if not bot_settings.get().get("portfolio_enabled", True):
+        logger.info(f"[{MODULE}] Module disabled, skipping")
+        return
+
     logger.info(f"[{MODULE}] Starting portfolio module...")
     wallet = config.POLYMARKET_WALLET
 

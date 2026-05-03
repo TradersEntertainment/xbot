@@ -3,6 +3,7 @@
 import random
 import logging
 
+import bot_settings
 from polymarket.gamma_api import get_trending_markets, format_market_summary
 from content_generator import generate_tweet, generate_thread
 from twitter_client import post_tweet_with_ref, post_thread_with_ref, get_recent_tweet_texts
@@ -30,6 +31,13 @@ def _build_context(markets: list[dict]) -> str:
 
 async def run():
     """Execute the trending module — fetch markets and tweet."""
+    if bot_settings.is_paused():
+        logger.info(f"[{MODULE}] Bot is paused, skipping")
+        return
+    if not bot_settings.get().get("trending_enabled", True):
+        logger.info(f"[{MODULE}] Module disabled, skipping")
+        return
+
     logger.info(f"[{MODULE}] Starting trending module...")
 
     try:

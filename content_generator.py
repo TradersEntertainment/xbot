@@ -1,8 +1,9 @@
-"""Groq-powered tweet content generator."""
+"""Groq-powered tweet content generator with dynamic style settings."""
 
 import logging
 from groq import Groq
 import config
+import bot_settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,16 +18,22 @@ def _get_client() -> Groq:
 
 
 def generate_tweet(system_prompt: str, user_context: str) -> str:
-    """Generate a single tweet using Groq LLM."""
+    """Generate a single tweet using Groq LLM with dynamic settings."""
     client = _get_client()
+    temperature = bot_settings.get_temperature()
+    style_mod = bot_settings.get_style_modifier()
+
+    # Inject style modifier into the prompt
+    full_prompt = system_prompt + f"\n\nSTYLE OVERRIDE: {style_mod}"
+
     try:
         completion = client.chat.completions.create(
             model=config.GROQ_MODEL,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": full_prompt},
                 {"role": "user", "content": user_context},
             ],
-            temperature=0.9,
+            temperature=temperature,
             max_tokens=300,
         )
         text = completion.choices[0].message.content.strip()
@@ -43,21 +50,25 @@ def generate_tweet(system_prompt: str, user_context: str) -> str:
 
 
 def generate_thread(system_prompt: str, user_context: str) -> list[str]:
-    """Generate a thread (multiple tweets) using Groq LLM."""
+    """Generate a thread (multiple tweets) using Groq LLM with dynamic settings."""
     client = _get_client()
+    temperature = bot_settings.get_temperature()
+    style_mod = bot_settings.get_style_modifier()
+
+    full_prompt = system_prompt + f"\n\nSTYLE OVERRIDE: {style_mod}"
+
     try:
         completion = client.chat.completions.create(
             model=config.GROQ_MODEL,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": full_prompt},
                 {"role": "user", "content": user_context},
             ],
-            temperature=0.9,
+            temperature=temperature,
             max_tokens=800,
         )
         raw = completion.choices[0].message.content.strip()
         tweets = [t.strip() for t in raw.split("|||") if t.strip()]
-        # Trim each tweet
         result = []
         for t in tweets:
             if t.startswith('"') and t.endswith('"'):
@@ -69,3 +80,16 @@ def generate_thread(system_prompt: str, user_context: str) -> list[str]:
     except Exception as e:
         logger.error(f"Groq thread generation failed: {e}")
         return []
+
+
+def preview_tweet(module: str, context: str) -> str:
+    """Generate a preview tweet (for dashboard) without posting."""
+    from templates.prompts import TRENDING_PROMPT, PORTFOLIO_PROMPT, VIRAL_PROMPT
+
+    prompts = {
+        "trending": TRENDING_PROMPT,
+        "portfolio": PORTFOLIO_PROMPT,
+        "viral": VIRAL_PROMPT,
+    }
+    prompt = prompts.get(module, TRENDING_PROMPT)
+    return generate_tweet(prompt, context)

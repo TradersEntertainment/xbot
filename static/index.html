@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Bot Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">🐦</div>
+                <div>
+                    <h1>PolyBot</h1>
+                    <span class="logo-sub">@girlmathtorich</span>
+                </div>
+            </div>
+            <nav>
+                <button class="nav-btn active" data-tab="overview" id="nav-overview">
+                    <span class="nav-icon">📊</span> Overview
+                </button>
+                <button class="nav-btn" data-tab="compose" id="nav-compose">
+                    <span class="nav-icon">✍️</span> Compose
+                </button>
+                <button class="nav-btn" data-tab="history" id="nav-history">
+                    <span class="nav-icon">📜</span> Tweet History
+                </button>
+                <button class="nav-btn" data-tab="settings" id="nav-settings">
+                    <span class="nav-icon">⚙️</span> Settings
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="bot-status" id="botStatus">
+                    <span class="status-dot running"></span>
+                    <span>Bot Running</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Overview Tab -->
+            <section class="tab-content active" id="tab-overview">
+                <div class="page-header">
+                    <h2>Dashboard Overview</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" id="btnRefresh" onclick="loadStatus()">↻ Refresh</button>
+                        <button class="btn btn-danger" id="btnPauseResume" onclick="togglePause()">⏸ Pause</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Tweets Posted</div>
+                        <div class="stat-value" id="statTweets">—</div>
+                    </div>
+                    <div class="stat-card accent">
+                        <div class="stat-label">Bot Status</div>
+                        <div class="stat-value" id="statStatus">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Ref Code</div>
+                        <div class="stat-value small" id="statRef">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Server Time</div>
+                        <div class="stat-value small" id="statTime">—</div>
+                    </div>
+                </div>
+
+                <div class="cards-row">
+                    <div class="card">
+                        <h3>📅 Upcoming Tweets</h3>
+                        <div class="job-list" id="jobList">
+                            <div class="loading-text">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>⚡ Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button class="btn btn-primary" onclick="runModule('trending')">🔥 Run Trending Now</button>
+                            <button class="btn btn-primary" onclick="runModule('portfolio')">📈 Run Portfolio Now</button>
+                            <button class="btn btn-primary" onclick="runModule('viral')">🚀 Run Viral Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📜 Recent Tweets</h3>
+                    <div id="recentTweets">
+                        <div class="loading-text">Loading...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Compose Tab -->
+            <section class="tab-content" id="tab-compose">
+                <div class="page-header">
+                    <h2>Compose Tweet</h2>
+                </div>
+
+                <div class="cards-row">
+                    <div class="card compose-card">
+                        <h3>🤖 AI Generate</h3>
+                        <div class="form-group">
+                            <label>Module Type</label>
+                            <select id="previewModule" class="input">
+                                <option value="trending">🔥 Trending</option>
+                                <option value="viral">🚀 Viral</option>
+                                <option value="portfolio">📈 Portfolio</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary full-width" onclick="generatePreview()">
+                            ✨ Generate Tweet
+                        </button>
+                        <div class="preview-box" id="previewBox" style="display:none">
+                            <div class="preview-text" id="previewText"></div>
+                            <div class="preview-meta">
+                                <span id="previewChars"></span>
+                                <button class="btn btn-success btn-sm" onclick="postPreview()">📤 Post This</button>
+                                <button class="btn btn-outline btn-sm" onclick="generatePreview()">🔄 Regenerate</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card compose-card">
+                        <h3>✏️ Manual Tweet</h3>
+                        <div class="form-group">
+                            <label>Tweet Text</label>
+                            <textarea id="manualText" class="input textarea" placeholder="Write your tweet..." maxlength="280"></textarea>
+                            <div class="char-count"><span id="manualChars">0</span>/280</div>
+                        </div>
+                        <button class="btn btn-success full-width" onclick="postManual()">
+                            📤 Post Tweet + Ref Reply
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Tab -->
+            <section class="tab-content" id="tab-history">
+                <div class="page-header">
+                    <h2>Tweet History</h2>
+                </div>
+                <div class="card">
+                    <div id="tweetHistory">
+                        <div class="loading-text">Loading...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section class="tab-content" id="tab-settings">
+                <div class="page-header">
+                    <h2>Bot Settings</h2>
+                    <button class="btn btn-success" onclick="saveSettings()">💾 Save Settings</button>
+                </div>
+
+                <div class="cards-row">
+                    <div class="card">
+                        <h3>🎯 Content Style</h3>
+
+                        <div class="form-group">
+                            <label>Aggressiveness</label>
+                            <div class="slider-group">
+                                <input type="range" id="settingAggr" min="1" max="10" value="5" class="slider" oninput="updateAggrLabel()">
+                                <span class="slider-value" id="aggrLabel">5 — Balanced</span>
+                            </div>
+                            <div class="slider-desc">1 = Safe & professional → 10 = Ultra bold & degen</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tweet Style</label>
+                            <select id="settingStyle" class="input">
+                                <option value="professional">🏢 Professional — Wall Street analyst tone</option>
+                                <option value="balanced" selected>⚖️ Balanced — Confident + approachable</option>
+                                <option value="casual">😎 Casual — Texting a friend vibes</option>
+                                <option value="degen">🦍 Degen — Full crypto degen energy</option>
+                                <option value="educational">📚 Educational — Explainer, accessible</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📦 Modules</h3>
+                        <div class="toggle-group">
+                            <label class="toggle-row">
+                                <span>🔥 Trending Markets</span>
+                                <input type="checkbox" id="settingTrending" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label class="toggle-row">
+                                <span>📈 Portfolio Sharing</span>
+                                <input type="checkbox" id="settingPortfolio" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label class="toggle-row">
+                                <span>🚀 Viral Content</span>
+                                <input type="checkbox" id="settingViral" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label class="toggle-row">
+                                <span>📎 Auto-Reply (Ref Link)</span>
+                                <input type="checkbox" id="settingAutoReply" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>⏰ Schedule (UTC hours)</h3>
+                    <div class="schedule-grid">
+                        <div class="form-group">
+                            <label>Trending Hours</label>
+                            <input type="text" id="scheduleTrending" class="input" value="6, 12, 20" placeholder="e.g. 6, 12, 20">
+                        </div>
+                        <div class="form-group">
+                            <label>Portfolio Hours</label>
+                            <input type="text" id="schedulePortfolio" class="input" value="10, 16" placeholder="e.g. 10, 16">
+                        </div>
+                        <div class="form-group">
+                            <label>Viral Hours</label>
+                            <input type="text" id="scheduleViral" class="input" value="8, 14, 18" placeholder="e.g. 8, 14, 18">
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

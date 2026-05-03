@@ -1,0 +1,27 @@
+{
+  "aggressiveness": 5,
+  "style": "balanced",
+  "language": "en",
+  "tweets_per_day": 8,
+  "trending_enabled": true,
+  "portfolio_enabled": true,
+  "viral_enabled": true,
+  "auto_reply_enabled": true,
+  "schedule": {
+    "trending": [
+      6,
+      12,
+      20
+    ],
+    "portfolio": [
+      10,
+      16
+    ],
+    "viral": [
+      8,
+      14,
+      18
+    ]
+  },
+  "paused": false
+}
